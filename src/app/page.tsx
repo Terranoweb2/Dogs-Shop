@@ -4,28 +4,55 @@
 import { useState, useMemo, useEffect } from 'react';
 import { dogBreeds } from '@/data/dog-breeds';
 import { dogListings } from '@/data/dog-listings';
-import { useUserListings } from '@/hooks/use-user-listings';
+import { getFromLocalStorage, STORAGE_KEYS } from '@/lib/localStorage';
+import { useAuth } from '@/hooks/use-auth';
 import { DogCard } from '@/components/dogs/DogCard';
 import { DogFilters, FilterState } from '@/components/dogs/DogFilters';
 import { DogDetailDialog } from '@/components/dogs/DogDetailDialog';
 import { Header } from '@/components/layout/Header';
 import { BottomNav } from '@/components/layout/BottomNav';
+import { AdminDiagnostic } from '@/components/admin/AdminDiagnostic';
 import { DogListing, DogBreed } from '@/types/dog';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { HelpCircle, Scale, Calculator, TrendingUp, ChevronLeft, ChevronRight, Star, Shield, Heart, Award } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { HelpCircle, Scale, Calculator, TrendingUp, ChevronLeft, ChevronRight, Star, Shield, Heart, Award, Settings } from 'lucide-react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
+import { isSuperAdmin } from '@/lib/constants';
 
 export default function Home() {
-  const { getAllListings } = useUserListings();
-  const [allListings, setAllListings] = useState<DogListing[]>([]);
+  const { user, isAuthenticated } = useAuth();
+  const [userListings, setUserListings] = useState<DogListing[]>([]);
 
   useEffect(() => {
-    const userListings = getAllListings();
-    setAllListings([...dogListings, ...userListings]);
+    const loadUserListings = () => {
+      const listings = getFromLocalStorage<DogListing[]>(STORAGE_KEYS.USER_LISTINGS, []);
+      setUserListings(listings);
+    };
+
+    loadUserListings();
+
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === STORAGE_KEYS.USER_LISTINGS || e.key === null) {
+        loadUserListings();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    
+    const interval = setInterval(loadUserListings, 500);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(interval);
+    };
   }, []);
+
+  const allListings = useMemo(() => {
+    return [...dogListings, ...userListings];
+  }, [userListings]);
 
   const [filters, setFilters] = useState<FilterState>({
     search: '',
@@ -134,9 +161,40 @@ export default function Home() {
 
   const shepherdBreeds = dogBreeds.filter(b => b.name.toLowerCase().includes('berger')).slice(0, 6);
 
+  const shouldShowDiagnostic = isAuthenticated && user && isSuperAdmin(user.email) && user.role !== 'admin';
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
+      
+      {shouldShowDiagnostic && (
+        <div className="bg-amber-500/10 border-b border-amber-500/30">
+          <div className="container mx-auto px-4 py-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Shield className="h-5 w-5 text-amber-500" />
+                <p className="text-sm text-amber-600 dark:text-amber-400">
+                  Votre compte devrait avoir les droits d'administrateur
+                </p>
+              </div>
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button size="sm" variant="outline" className="border-amber-500/50 text-amber-600 dark:text-amber-400">
+                    <Settings className="h-4 w-4 mr-2" />
+                    Corriger
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle>Diagnostic et Correction</DialogTitle>
+                  </DialogHeader>
+                  <AdminDiagnostic />
+                </DialogContent>
+              </Dialog>
+            </div>
+          </div>
+        </div>
+      )}
       
       <main className="pb-20 lg:pb-6">
         {/* Hero Section */}

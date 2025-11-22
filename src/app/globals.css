@@ -1,4 +1,5 @@
 
+
 @import "tailwindcss";
 @import "tw-animate-css";
 
@@ -129,32 +130,47 @@
     @apply bg-background text-foreground;
   }
   
-  /* Smooth scrolling */
   html {
     scroll-behavior: smooth;
     -webkit-tap-highlight-color: transparent;
     -webkit-overflow-scrolling: touch;
   }
   
-  /* Better touch targets on mobile */
   button, a, input, select, textarea {
     touch-action: manipulation;
   }
   
-  /* Prevent text size adjustment on orientation change */
   body {
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
   }
   
-  /* Prevent pull-to-refresh on mobile */
   body {
     overscroll-behavior-y: contain;
   }
 }
 
-/* Custom scrollbar for better UX */
 @layer utilities {
+  .admin-gradient-bg {
+    background: linear-gradient(180deg, 
+      oklch(0.55 0.20 300) 0%,
+      oklch(0.60 0.25 20) 35%,
+      oklch(0.65 0.22 0) 50%,
+      oklch(0.70 0.18 30) 75%,
+      oklch(0.85 0.10 50) 100%
+    );
+  }
+  
+  .dark .admin-gradient-bg {
+    background: linear-gradient(180deg, 
+      oklch(0.35 0.18 300) 0%,
+      oklch(0.40 0.22 20) 35%,
+      oklch(0.45 0.20 0) 50%,
+      oklch(0.50 0.16 30) 75%,
+      oklch(0.60 0.08 50) 100%
+    );
+  }
+  
   .scrollbar-thin {
     scrollbar-width: thin;
     scrollbar-color: var(--muted) transparent;
@@ -174,7 +190,6 @@
     border-radius: 3px;
   }
   
-  /* Hide scrollbar but keep functionality */
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
@@ -184,7 +199,6 @@
     display: none;
   }
   
-  /* Safe area padding for notched devices */
   .safe-area-inset-bottom {
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
@@ -201,7 +215,6 @@
     padding-right: env(safe-area-inset-right, 0px);
   }
   
-  /* Responsive text utilities */
   .text-responsive-xs {
     font-size: clamp(0.625rem, 2vw, 0.75rem);
   }
@@ -234,13 +247,11 @@
     font-size: clamp(1.875rem, 7vw, 2.25rem);
   }
   
-  /* Touch-friendly minimum sizes */
   .touch-target {
     min-height: 44px;
     min-width: 44px;
   }
   
-  /* Responsive container padding */
   .container-padding {
     padding-left: max(1rem, env(safe-area-inset-left));
     padding-right: max(1rem, env(safe-area-inset-right));
@@ -253,17 +264,14 @@
     }
   }
   
-  /* Prevent content shift on scroll */
   .stable-scrollbar {
     scrollbar-gutter: stable;
   }
   
-  /* Better focus states for accessibility */
   .focus-ring {
     @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
   }
   
-  /* Responsive gap utilities */
   .gap-responsive {
     gap: clamp(0.5rem, 2vw, 1rem);
   }
@@ -272,7 +280,6 @@
     gap: clamp(0.75rem, 3vw, 1.5rem);
   }
   
-  /* Line clamp utilities */
   .line-clamp-1 {
     display: -webkit-box;
     -webkit-line-clamp: 1;
@@ -295,7 +302,6 @@
   }
 }
 
-/* Animations for mobile */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -307,12 +313,10 @@
   }
 }
 
-/* Better image rendering */
 img {
   image-rendering: -webkit-optimize-contrast;
 }
 
-/* Prevent zoom on input focus on iOS */
 @supports (-webkit-touch-callout: none) {
   input[type="text"],
   input[type="email"],
@@ -325,3 +329,4 @@ img {
     font-size: 16px !important;
   }
 }
+

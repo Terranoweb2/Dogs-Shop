@@ -20,6 +20,16 @@ const nextConfig: NextConfig = {
         hostname: 'images.pexels.com',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'www.woopets.fr',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'www.prodograw.com',
+        pathname: '/**',
+      },
     ],
   },
 };

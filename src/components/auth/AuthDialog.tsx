@@ -19,7 +19,8 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/use-auth';
 import { getFromLocalStorage, STORAGE_KEYS } from '@/lib/localStorage';
 import { User } from '@/types/user';
-import { LogIn, UserPlus, Store, ShoppingBag, Shield } from 'lucide-react';
+import { isSuperAdmin } from '@/lib/constants';
+import { LogIn, UserPlus, Store, ShoppingBag, Shield, Crown } from 'lucide-react';
 
 interface AuthDialogProps {
   open: boolean;
@@ -51,6 +52,11 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
   const isFirstUser = () => {
     const users = getFromLocalStorage<User[]>(STORAGE_KEYS.USERS, []);
     return users.length === 0;
+  };
+
+  // Vérifier si l'email est un super administrateur
+  const checkIfSuperAdmin = (email: string) => {
+    return isSuperAdmin(email);
   };
 
   const handleLogin = (e: React.FormEvent) => {
@@ -108,6 +114,8 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
     }
   };
 
+  const isSuperAdminEmail = checkIfSuperAdmin(registerData.email) || checkIfSuperAdmin(loginData.email);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md w-[92vw] max-h-[90vh] p-0 overflow-hidden">
@@ -132,6 +140,23 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
           <ScrollArea className="max-h-[calc(90vh-120px)] xs:max-h-[calc(90vh-140px)]">
             <TabsContent value="login" className="p-3 xs:p-4 sm:p-6 pt-3 xs:pt-4 mt-0">
               <form onSubmit={handleLogin} className="space-y-3 xs:space-y-4">
+                {isSuperAdmin(loginData.email) && (
+                  <div className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30 rounded-lg p-3 xs:p-4">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Crown className="h-4 w-4 xs:h-5 xs:w-5 text-amber-500" />
+                      <span className="font-semibold text-xs xs:text-sm text-amber-600 dark:text-amber-400">
+                        Super Administrateur
+                      </span>
+                      <Badge variant="secondary" className="text-[9px] xs:text-[10px] bg-amber-500/20 text-amber-600 dark:text-amber-400">
+                        Accès Total
+                      </Badge>
+                    </div>
+                    <p className="text-[10px] xs:text-xs text-muted-foreground">
+                      Vous avez tous les droits d'administration sur la plateforme.
+                    </p>
+                  </div>
+                )}
+
                 <div className="space-y-1.5 xs:space-y-2">
                   <Label htmlFor="login-email" className="text-xs xs:text-sm">Email</Label>
                   <Input
@@ -141,6 +166,7 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
                     onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
                     required
                     className="h-9 xs:h-10 sm:h-11 text-sm"
+                    placeholder="socialassaibo@gmail.com"
                   />
                 </div>
 
@@ -157,32 +183,44 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
                 </div>
 
                 <Button type="submit" className="w-full h-9 xs:h-10 sm:h-11 text-sm">
-                  <LogIn className="h-3.5 w-3.5 xs:h-4 xs:w-4 mr-2" />
-                  Se connecter
+                  {isSuperAdmin(loginData.email) ? (
+                    <>
+                      <Shield className="h-3.5 w-3.5 xs:h-4 xs:w-4 mr-2" />
+                      Connexion Admin
+                    </>
+                  ) : (
+                    <>
+                      <LogIn className="h-3.5 w-3.5 xs:h-4 xs:w-4 mr-2" />
+                      Se connecter
+                    </>
+                  )}
                 </Button>
               </form>
             </TabsContent>
 
             <TabsContent value="register" className="p-3 xs:p-4 sm:p-6 pt-3 xs:pt-4 mt-0">
               <form onSubmit={handleRegister} className="space-y-3 xs:space-y-4">
-                {isFirstUser() && (
+                {(isFirstUser() || isSuperAdmin(registerData.email)) && (
                   <div className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30 rounded-lg p-3 xs:p-4">
                     <div className="flex items-center gap-2 mb-1">
                       <Shield className="h-4 w-4 xs:h-5 xs:w-5 text-amber-500" />
                       <span className="font-semibold text-xs xs:text-sm text-amber-600 dark:text-amber-400">
-                        Premier compte
+                        {isSuperAdmin(registerData.email) ? 'Super Administrateur Autorisé' : 'Premier compte'}
                       </span>
                       <Badge variant="secondary" className="text-[9px] xs:text-[10px] bg-amber-500/20 text-amber-600 dark:text-amber-400">
                         Super Admin
                       </Badge>
                     </div>
                     <p className="text-[10px] xs:text-xs text-muted-foreground">
-                      Ce compte aura tous les droits d'administration sur la plateforme.
+                      {isSuperAdmin(registerData.email) 
+                        ? 'Cet email est autorisé comme super administrateur avec tous les droits.'
+                        : 'Ce compte aura tous les droits d\'administration sur la plateforme.'
+                      }
                     </p>
                   </div>
                 )}
 
-                {!isFirstUser() && (
+                {!isFirstUser() && !isSuperAdmin(registerData.email) && (
                   <div className="space-y-2 xs:space-y-3">
                     <Label className="text-xs xs:text-sm">Type de compte</Label>
                     <RadioGroup 
@@ -215,6 +253,19 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
                 )}
 
                 <div className="space-y-1.5 xs:space-y-2">
+                  <Label htmlFor="register-email" className="text-xs xs:text-sm">Email</Label>
+                  <Input
+                    id="register-email"
+                    type="email"
+                    value={registerData.email}
+                    onChange={(e) => setRegisterData({ ...registerData, email: e.target.value })}
+                    required
+                    className="h-9 xs:h-10 sm:h-11 text-sm"
+                    placeholder="socialassaibo@gmail.com"
+                  />
+                </div>
+
+                <div className="space-y-1.5 xs:space-y-2">
                   <Label htmlFor="register-name" className="text-xs xs:text-sm">Nom complet</Label>
                   <Input
                     id="register-name"
@@ -222,6 +273,7 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
                     onChange={(e) => setRegisterData({ ...registerData, name: e.target.value })}
                     required
                     className="h-9 xs:h-10 sm:h-11 text-sm"
+                    placeholder={isSuperAdmin(registerData.email) ? "TOH JEAN GEORGES GLACIA" : "Votre nom"}
                   />
                 </div>
 
@@ -237,19 +289,7 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
                   />
                 </div>
 
-                <div className="space-y-1.5 xs:space-y-2">
-                  <Label htmlFor="register-email" className="text-xs xs:text-sm">Email</Label>
-                  <Input
-                    id="register-email"
-                    type="email"
-                    value={registerData.email}
-                    onChange={(e) => setRegisterData({ ...registerData, email: e.target.value })}
-                    required
-                    className="h-9 xs:h-10 sm:h-11 text-sm"
-                  />
-                </div>
-
-                {!isFirstUser() && registerData.role === 'seller' && (
+                {!isFirstUser() && !isSuperAdmin(registerData.email) && registerData.role === 'seller' && (
                   <>
                     <div className="space-y-1.5 xs:space-y-2">
                       <Label htmlFor="business-name" className="text-xs xs:text-sm">Nom de l'élevage</Label>
@@ -300,7 +340,7 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
                 </div>
 
                 <Button type="submit" className="w-full h-9 xs:h-10 sm:h-11 text-sm">
-                  {isFirstUser() ? (
+                  {(isFirstUser() || isSuperAdmin(registerData.email)) ? (
                     <>
                       <Shield className="h-3.5 w-3.5 xs:h-4 xs:w-4 mr-2" />
                       Créer le compte Admin

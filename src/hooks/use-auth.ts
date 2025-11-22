@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { getFromLocalStorage, saveToLocalStorage, removeFromLocalStorage, STORAGE_KEYS } from '@/lib/localStorage';
 import { User, AuthState } from '@/types/user';
 import { toast } from 'sonner';
+import { isSuperAdmin, getSuperAdminInfo } from '@/lib/constants';
 
 export function useAuth() {
   const [authState, setAuthState] = useState<AuthState>({
@@ -14,10 +15,44 @@ export function useAuth() {
   useEffect(() => {
     const user = getFromLocalStorage<User | null>(STORAGE_KEYS.USER, null);
     if (user) {
-      setAuthState({
-        user,
-        isAuthenticated: true
-      });
+      // Vérifier si l'utilisateur connecté devrait être super admin
+      if (isSuperAdmin(user.email) && user.role !== 'admin') {
+        // Mettre à jour automatiquement les droits
+        const updatedUser = {
+          ...user,
+          role: 'admin' as const,
+          adminPermissions: {
+            manageUsers: true,
+            manageDogs: true,
+            manageOrders: true,
+            manageAnnonces: true,
+            manageReports: true,
+            viewStatistics: true,
+            systemSettings: true
+          }
+        };
+
+        // Mettre à jour dans localStorage
+        saveToLocalStorage(STORAGE_KEYS.USER, updatedUser);
+        
+        // Mettre à jour dans la liste des utilisateurs
+        const users = getFromLocalStorage<User[]>(STORAGE_KEYS.USERS, []);
+        const userIndex = users.findIndex(u => u.id === user.id);
+        if (userIndex !== -1) {
+          users[userIndex] = updatedUser;
+          saveToLocalStorage(STORAGE_KEYS.USERS, users);
+        }
+
+        setAuthState({
+          user: updatedUser,
+          isAuthenticated: true
+        });
+      } else {
+        setAuthState({
+          user,
+          isAuthenticated: true
+        });
+      }
     }
     setIsLoading(false);
   }, []);
@@ -41,15 +76,20 @@ export function useAuth() {
       return null;
     }
 
-    // Le premier utilisateur devient super administrateur
+    // Vérifier si c'est un super administrateur
+    const isSuperAdminUser = isSuperAdmin(userData.email);
+    const superAdminInfo = getSuperAdminInfo(userData.email);
+
+    // Le premier utilisateur devient super administrateur OU si l'email est dans la liste des super admins
     const isFirstUser = users.length === 0;
+    const shouldBeAdmin = isFirstUser || isSuperAdminUser;
 
     const newUser: User = {
       id: Date.now().toString(),
       email: userData.email,
-      name: userData.name,
+      name: isSuperAdminUser && superAdminInfo ? superAdminInfo.name : userData.name,
       phone: userData.phone,
-      role: isFirstUser ? 'admin' : userData.role,
+      role: shouldBeAdmin ? 'admin' : userData.role,
       createdAt: new Date().toISOString(),
       breederInfo: userData.role === 'seller' && userData.breederInfo ? {
         businessName: userData.breederInfo.businessName,
@@ -59,7 +99,7 @@ export function useAuth() {
         totalSales: 0
       } : undefined,
       // Permissions complètes pour le super administrateur
-      adminPermissions: isFirstUser ? {
+      adminPermissions: shouldBeAdmin ? {
         manageUsers: true,
         manageDogs: true,
         manageOrders: true,
@@ -79,7 +119,7 @@ export function useAuth() {
       isAuthenticated: true
     });
 
-    if (isFirstUser) {
+    if (shouldBeAdmin) {
       toast.success('Compte Super Administrateur créé avec succès ! Vous avez tous les droits.');
     } else {
       toast.success('Compte créé avec succès !');
@@ -89,11 +129,67 @@ export function useAuth() {
 
   const login = (email: string, password: string): User | null => {
     const users = getFromLocalStorage<User[]>(STORAGE_KEYS.USERS, []);
-    const user = users.find(u => u.email === email);
+    let user = users.find(u => u.email === email);
 
     if (!user) {
-      toast.error('Email ou mot de passe incorrect');
-      return null;
+      // Vérifier si c'est un super administrateur qui se connecte pour la première fois
+      if (isSuperAdmin(email)) {
+        const superAdminInfo = getSuperAdminInfo(email);
+        if (superAdminInfo) {
+          // Créer automatiquement le compte super admin
+          const newSuperAdmin: User = {
+            id: Date.now().toString(),
+            email: email,
+            name: superAdminInfo.name,
+            phone: '+237 000 000 000', // Numéro par défaut
+            role: 'admin',
+            createdAt: new Date().toISOString(),
+            adminPermissions: {
+              manageUsers: true,
+              manageDogs: true,
+              manageOrders: true,
+              manageAnnonces: true,
+              manageReports: true,
+              viewStatistics: true,
+              systemSettings: true
+            }
+          };
+
+          users.push(newSuperAdmin);
+          saveToLocalStorage(STORAGE_KEYS.USERS, users);
+          user = newSuperAdmin;
+          
+          toast.success('Bienvenue Super Administrateur ! Votre compte a été créé automatiquement.');
+        }
+      }
+      
+      if (!user) {
+        toast.error('Email ou mot de passe incorrect');
+        return null;
+      }
+    }
+
+    // Si l'utilisateur existe mais n'est pas admin et qu'il devrait l'être (super admin)
+    if (user.role !== 'admin' && isSuperAdmin(user.email)) {
+      user.role = 'admin';
+      user.adminPermissions = {
+        manageUsers: true,
+        manageDogs: true,
+        manageOrders: true,
+        manageAnnonces: true,
+        manageReports: true,
+        viewStatistics: true,
+        systemSettings: true
+      };
+      
+      // Mettre à jour dans la liste des utilisateurs
+      const userIndex = users.findIndex(u => u.id === user!.id);
+      if (userIndex !== -1) {
+        users[userIndex] = user;
+        saveToLocalStorage(STORAGE_KEYS.USERS, users);
+      }
+      
+      toast.success('Vos droits d\'administrateur ont été activés !');
     }
 
     saveToLocalStorage(STORAGE_KEYS.USER, user);
@@ -167,6 +263,12 @@ export function useAuth() {
       return;
     }
 
+    // Empêcher la modification du rôle d'un super administrateur
+    if (isSuperAdmin(users[userIndex].email)) {
+      toast.error('Impossible de modifier le rôle d\'un super administrateur');
+      return;
+    }
+
     users[userIndex].role = newRole;
     
     // Ajouter les permissions admin si nécessaire
@@ -201,6 +303,14 @@ export function useAuth() {
     }
 
     const users = getFromLocalStorage<User[]>(STORAGE_KEYS.USERS, []);
+    const userToDelete = users.find(u => u.id === userId);
+
+    // Empêcher la suppression d'un super administrateur
+    if (userToDelete && isSuperAdmin(userToDelete.email)) {
+      toast.error('Impossible de supprimer un super administrateur');
+      return;
+    }
+
     const filteredUsers = users.filter(u => u.id !== userId);
     
     saveToLocalStorage(STORAGE_KEYS.USERS, filteredUsers);

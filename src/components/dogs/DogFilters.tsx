@@ -46,7 +46,7 @@ export function DogFilters({ breeds, filters, onFiltersChange }: DogFiltersProps
       breedId: '',
       gender: '',
       minPrice: 0,
-      maxPrice: 5000,
+      maxPrice: 5000000,
       size: '',
       ageUnit: '',
       location: '',
@@ -57,10 +57,19 @@ export function DogFilters({ breeds, filters, onFiltersChange }: DogFiltersProps
 
   const activeFiltersCount = Object.entries(filters).filter(([key, value]) => {
     if (key === 'minPrice' && value === 0) return false;
-    if (key === 'maxPrice' && value === 5000) return false;
+    if (key === 'maxPrice' && value === 5000000) return false;
     if (key === 'search' && value === '') return false;
     return value !== '' && value !== null;
   }).length;
+
+  const formatPriceDisplay = (price: number) => {
+    if (price >= 1000000) {
+      return `${(price / 1000000).toFixed(1)}M`;
+    } else if (price >= 1000) {
+      return `${(price / 1000).toFixed(0)}K`;
+    }
+    return price.toString();
+  };
 
   return (
     <div className="space-y-2 xs:space-y-3 sm:space-y-4">
@@ -180,15 +189,15 @@ export function DogFilters({ breeds, filters, onFiltersChange }: DogFiltersProps
 
                 <div className="space-y-3 xs:space-y-4">
                   <div className="flex items-center justify-between">
-                    <Label className="text-xs xs:text-sm font-medium">Prix</Label>
+                    <Label className="text-xs xs:text-sm font-medium">Prix (XOF)</Label>
                     <span className="text-[10px] xs:text-xs sm:text-sm text-muted-foreground">
-                      {filters.minPrice}€ - {filters.maxPrice}€
+                      {formatPriceDisplay(filters.minPrice)} - {formatPriceDisplay(filters.maxPrice)}
                     </span>
                   </div>
                   <Slider
                     min={0}
-                    max={5000}
-                    step={100}
+                    max={5000000}
+                    step={50000}
                     value={[filters.minPrice, filters.maxPrice]}
                     onValueChange={([min, max]) => 
                       onFiltersChange({ ...filters, minPrice: min, maxPrice: max })

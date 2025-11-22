@@ -11,8 +11,24 @@ Application web moderne pour la vente et l'adoption de chiens, construite avec N
 - 📊 **Comparaison** - Comparez plusieurs chiens côte à côte
 - 🧮 **Calculateur de coûts** - Estimez le budget annuel pour votre chien
 - 🎯 **Quiz de compatibilité** - Trouvez la race idéale pour vous
+- 🛡️ **Panneau d'administration** - Gestion complète de la plateforme
 - 📱 **Design responsive** - Optimisé pour mobile et desktop
 - 🌙 **Mode sombre** - Interface adaptée à vos préférences
+
+## 👑 Super Administrateur
+
+L'utilisateur **TOH JEAN GEORGES GLACIA** (socialassaibo@gmail.com) dispose d'un accès super administrateur avec tous les droits :
+
+- ✅ Gestion des utilisateurs
+- ✅ Gestion des annonces
+- ✅ Gestion des commandes
+- ✅ Statistiques de la plateforme
+- ✅ Paramètres système
+
+Pour accéder au panneau d'administration :
+1. Connectez-vous avec l'email : **socialassaibo@gmail.com**
+2. Accédez à `/admin` ou cliquez sur le bouton "Admin" dans le header
+3. Vous aurez un accès complet à toutes les fonctionnalités d'administration
 
 ## 🛠️ Technologies utilisées
 
@@ -68,6 +84,7 @@ src/
 ├── data/                  # Données statiques
 ├── hooks/                 # Hooks personnalisés
 ├── lib/                   # Utilitaires et configurations
+│   └── constants.ts       # Configuration des super admins
 └── types/                 # Types TypeScript
 ```
 
@@ -91,6 +108,12 @@ src/
 3. Déployez !
 
 Le fichier `netlify.toml` est déjà configuré pour le déploiement.
+
+## 🔐 Sécurité
+
+- Les super administrateurs sont définis dans `src/lib/constants.ts`
+- Impossible de supprimer ou modifier le rôle d'un super administrateur
+- Système de permissions granulaires pour les administrateurs
 
 ## 🤝 Contribution
 

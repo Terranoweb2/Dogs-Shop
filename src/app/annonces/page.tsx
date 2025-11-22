@@ -4,7 +4,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { dogBreeds } from '@/data/dog-breeds';
 import { dogListings } from '@/data/dog-listings';
-import { useUserListings } from '@/hooks/use-user-listings';
+import { getFromLocalStorage, STORAGE_KEYS } from '@/lib/localStorage';
 import { DogCard } from '@/components/dogs/DogCard';
 import { DogFilters, FilterState } from '@/components/dogs/DogFilters';
 import { DogDetailDialog } from '@/components/dogs/DogDetailDialog';
@@ -26,20 +26,42 @@ type SortOption = 'recent' | 'price-asc' | 'price-desc' | 'name-asc' | 'name-des
 type ViewMode = 'grid' | 'list';
 
 export default function AnnoncesPage() {
-  const { getAllListings } = useUserListings();
-  const [allListings, setAllListings] = useState<DogListing[]>([]);
+  const [userListings, setUserListings] = useState<DogListing[]>([]);
 
   useEffect(() => {
-    const userListings = getAllListings();
-    setAllListings([...dogListings, ...userListings]);
+    const loadUserListings = () => {
+      const listings = getFromLocalStorage<DogListing[]>(STORAGE_KEYS.USER_LISTINGS, []);
+      setUserListings(listings);
+    };
+
+    loadUserListings();
+
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === STORAGE_KEYS.USER_LISTINGS || e.key === null) {
+        loadUserListings();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    
+    const interval = setInterval(loadUserListings, 2000);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(interval);
+    };
   }, []);
+
+  const allListings = useMemo(() => {
+    return [...dogListings, ...userListings];
+  }, [userListings]);
 
   const [filters, setFilters] = useState<FilterState>({
     search: '',
     breedId: '',
     gender: '',
     minPrice: 0,
-    maxPrice: 5000,
+    maxPrice: 5000000,
     size: '',
     ageUnit: '',
     location: '',
@@ -124,6 +146,21 @@ export default function AnnoncesPage() {
     setDialogOpen(true);
   };
 
+  const handleResetFilters = () => {
+    setFilters({
+      search: '',
+      breedId: '',
+      gender: '',
+      minPrice: 0,
+      maxPrice: 5000000,
+      size: '',
+      ageUnit: '',
+      location: '',
+      pedigree: null,
+      vaccinated: null
+    });
+  };
+
   const stats = {
     total: filteredListings.length,
     available: filteredListings.filter(l => l.available).length,
@@ -136,12 +173,11 @@ export default function AnnoncesPage() {
       <Header />
       
       <main className="pb-20 lg:pb-6">
-        {/* Hero Section */}
         <section className="bg-gradient-to-br from-[#D4A574]/10 to-[#2C5530]/10 py-8 sm:py-10 md:py-12 mb-6 sm:mb-8">
           <div className="container mx-auto px-3 sm:px-4">
             <div className="text-center">
               <h1 className="text-2xl xs:text-3xl sm:text-4xl md:text-5xl font-bold mb-2 sm:mb-4">
-                Parcourir les annonces
+                Chiens et chiots disponibles
               </h1>
               <p className="text-sm sm:text-base md:text-lg text-muted-foreground mb-4 sm:mb-6">
                 Découvrez tous nos chiens et chiots de race disponibles
@@ -165,7 +201,6 @@ export default function AnnoncesPage() {
         </section>
 
         <section className="container mx-auto px-3 sm:px-4">
-          {/* Filters */}
           <div className="mb-4 sm:mb-6">
             <DogFilters
               breeds={dogBreeds}
@@ -174,11 +209,10 @@ export default function AnnoncesPage() {
             />
           </div>
 
-          {/* Sort and View Controls */}
           <div className="flex flex-col xs:flex-row items-start xs:items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
             <div>
               <h2 className="text-lg sm:text-xl md:text-2xl font-bold mb-0.5 sm:mb-1">
-                {filteredListings.length} résultat{filteredListings.length > 1 ? 's' : ''}
+                {filteredListings.length} résultat{filteredListings.length > 1 ? 's' : ''} trouvé{filteredListings.length > 1 ? 's' : ''}
               </h2>
               <p className="text-muted-foreground text-xs sm:text-sm md:text-base">
                 Trouvez votre compagnon idéal
@@ -225,30 +259,18 @@ export default function AnnoncesPage() {
             </div>
           </div>
 
-          {/* Results */}
           {filteredListings.length === 0 ? (
             <div className="text-center py-10 sm:py-12 md:py-16">
               <div className="bg-muted/50 rounded-full w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 flex items-center justify-center mx-auto mb-3 sm:mb-4">
                 <Star className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 text-muted-foreground" />
               </div>
               <h3 className="text-lg sm:text-xl md:text-2xl font-bold mb-2">
-                Aucune annonce trouvée
+                Aucun chien ne correspond à vos critères
               </h3>
               <p className="text-muted-foreground text-sm sm:text-base mb-4 sm:mb-6">
-                Essayez de modifier vos critères de recherche
+                Essayez de modifier vos filtres de recherche
               </p>
-              <Button onClick={() => setFilters({
-                search: '',
-                breedId: '',
-                gender: '',
-                minPrice: 0,
-                maxPrice: 5000,
-                size: '',
-                ageUnit: '',
-                location: '',
-                pedigree: null,
-                vaccinated: null
-              })}>
+              <Button onClick={handleResetFilters}>
                 Réinitialiser les filtres
               </Button>
             </div>

@@ -3,12 +3,9 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
+import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { ThemeToggle } from '@/components/ThemeToggle';
-import { AuthDialog } from '@/components/auth/AuthDialog';
-import { useAuth } from '@/hooks/use-auth';
 import { Badge } from '@/components/ui/badge';
 import {
   DropdownMenu,
@@ -17,211 +14,242 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { 
-  User, 
-  LogOut, 
-  Heart, 
-  ShoppingCart, 
-  FileText, 
-  Menu,
-  Dog,
-  Calculator,
-  Stethoscope,
-  GitCompare,
-  HelpCircle,
-  BookOpen,
-  Shield,
-  Store
-} from 'lucide-react';
+import { ThemeToggle } from '@/components/ThemeToggle';
+import { AuthDialog } from '@/components/auth/AuthDialog';
+import { useAuth } from '@/hooks/use-auth';
+import { useFavorites } from '@/hooks/use-favorites';
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from '@/components/ui/sheet';
+  Dog,
+  Heart,
+  User,
+  Menu,
+  X,
+  ShoppingCart,
+  Calculator,
+  Award,
+  GitCompare,
+  Shield,
+  LogOut,
+  FileText,
+  Store,
+  HelpCircle,
+  Stethoscope,
+} from 'lucide-react';
 
 export function Header() {
-  const router = useRouter();
-  const { user, isAuthenticated, logout, isAdmin } = useAuth();
-  const [authDialogOpen, setAuthDialogOpen] = useState(false);
+  const pathname = usePathname();
+  const { user, isAuthenticated, isAdmin, logout } = useAuth();
+  const { favorites } = useFavorites();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [authDialogOpen, setAuthDialogOpen] = useState(false);
+
+  const navigation = [
+    { name: 'Annonces', href: '/annonces', icon: Dog },
+    { name: 'Races', href: '/races', icon: Award },
+    { name: 'Comparaison', href: '/comparaison', icon: GitCompare },
+    { name: 'Calculateur', href: '/calculateur', icon: Calculator },
+    { name: 'Santé', href: '/sante', icon: Stethoscope },
+    { name: 'Quiz', href: '/quiz', icon: HelpCircle },
+  ];
+
+  const userNavigation = [
+    { name: 'Mes favoris', href: '/favoris', icon: Heart },
+    { name: 'Mes commandes', href: '/commandes', icon: ShoppingCart },
+    { name: 'Mes annonces', href: '/mes-annonces', icon: FileText },
+  ];
 
   const handleLogout = () => {
     logout();
-    router.push('/');
+    setMobileMenuOpen(false);
   };
-
-  const navItems = [
-    { href: '/annonces', label: 'Annonces', icon: Dog },
-    { href: '/races', label: 'Races', icon: BookOpen },
-    { href: '/calculateur', label: 'Calculateur', icon: Calculator },
-    { href: '/sante', label: 'Santé', icon: Stethoscope },
-    { href: '/comparaison', label: 'Comparer', icon: GitCompare },
-    { href: '/quiz', label: 'Quiz', icon: HelpCircle },
-  ];
 
   return (
     <>
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container mx-auto flex h-14 xs:h-16 items-center justify-between px-3 xs:px-4 sm:px-6">
+        <div className="container mx-auto flex h-14 sm:h-16 items-center justify-between px-3 sm:px-4">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-1.5 xs:gap-2">
-            <Image
-              src="https://res.cloudinary.com/dxy0fiahv/image/upload/v1763812106/dog-shop_copie_wzu9xb.png"
-              alt="Dogs-Shop Logo"
-              width={32}
-              height={32}
-              className="h-7 w-7 xs:h-8 xs:w-8 sm:h-9 sm:w-9"
-            />
-            <span className="font-bold text-base xs:text-lg sm:text-xl text-[#D4A574]">
-              Dogs-Shop
-            </span>
+          <Link href="/" className="flex items-center space-x-2">
+            <Dog className="h-6 w-6 sm:h-8 sm:w-8 text-[#D4A574]" />
+            <span className="font-bold text-lg sm:text-xl">ChienMarket</span>
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden lg:flex items-center gap-1">
-            {navItems.map((item) => (
-              <Link key={item.href} href={item.href}>
-                <Button variant="ghost" size="sm" className="text-xs xl:text-sm">
-                  <item.icon className="h-3.5 w-3.5 mr-1.5" />
-                  {item.label}
-                </Button>
-              </Link>
-            ))}
+          <nav className="hidden lg:flex items-center space-x-1">
+            {navigation.map((item) => {
+              const isActive = pathname === item.href;
+              return (
+                <Link key={item.name} href={item.href}>
+                  <Button
+                    variant={isActive ? 'secondary' : 'ghost'}
+                    size="sm"
+                    className="text-sm"
+                  >
+                    <item.icon className="h-4 w-4 mr-1.5" />
+                    {item.name}
+                  </Button>
+                </Link>
+              );
+            })}
           </nav>
 
-          {/* Right Side Actions */}
-          <div className="flex items-center gap-1 xs:gap-1.5 sm:gap-2">
+          {/* Right side actions */}
+          <div className="flex items-center space-x-1 sm:space-x-2">
             <ThemeToggle />
 
-            {isAuthenticated ? (
-              <>
-                {/* Admin Badge */}
-                {isAdmin() && (
-                  <Link href="/admin" className="hidden sm:block">
-                    <Button variant="outline" size="sm" className="text-xs h-8 gap-1.5 border-amber-500/50 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10">
-                      <Shield className="h-3.5 w-3.5" />
-                      Admin
-                    </Button>
-                  </Link>
+            {/* Favorites button */}
+            <Link href="/favoris" className="hidden sm:block">
+              <Button variant="ghost" size="icon" className="relative">
+                <Heart className="h-5 w-5" />
+                {favorites.length > 0 && (
+                  <Badge
+                    variant="destructive"
+                    className="absolute -top-1 -right-1 h-4 w-4 sm:h-5 sm:w-5 flex items-center justify-center p-0 text-[10px] sm:text-xs"
+                  >
+                    {favorites.length}
+                  </Badge>
                 )}
+              </Button>
+            </Link>
 
-                {/* Seller Dashboard */}
-                {user?.role === 'seller' && (
-                  <Link href="/mes-annonces" className="hidden sm:block">
-                    <Button variant="outline" size="sm" className="text-xs h-8 gap-1.5">
-                      <Store className="h-3.5 w-3.5" />
-                      Mes annonces
-                    </Button>
-                  </Link>
-                )}
-
-                {/* User Menu */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 xs:h-9 xs:w-9">
-                      <User className="h-4 w-4 xs:h-5 xs:w-5" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48 xs:w-56">
-                    <div className="px-2 py-1.5">
-                      <p className="text-xs xs:text-sm font-medium truncate">{user?.name}</p>
-                      <p className="text-[10px] xs:text-xs text-muted-foreground truncate">{user?.email}</p>
-                      {user?.role === 'admin' && (
-                        <Badge className="mt-1 text-[9px] xs:text-[10px] bg-amber-500/20 text-amber-600 dark:text-amber-400">
-                          Super Admin
-                        </Badge>
-                      )}
-                    </div>
-                    <DropdownMenuSeparator />
-                    {isAdmin() && (
-                      <>
-                        <DropdownMenuItem onClick={() => router.push('/admin')} className="text-xs xs:text-sm">
-                          <Shield className="h-3.5 w-3.5 xs:h-4 xs:w-4 mr-2 text-amber-500" />
-                          Tableau de bord Admin
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                      </>
-                    )}
-                    <DropdownMenuItem onClick={() => router.push('/favoris')} className="text-xs xs:text-sm">
-                      <Heart className="h-3.5 w-3.5 xs:h-4 xs:w-4 mr-2" />
-                      Mes favoris
+            {/* User menu or login button */}
+            {isAuthenticated && user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="gap-1.5 sm:gap-2">
+                    <User className="h-4 w-4 sm:h-5 sm:w-5" />
+                    <span className="hidden sm:inline max-w-[100px] truncate">
+                      {user.name}
+                    </span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <div className="px-2 py-1.5">
+                    <p className="text-sm font-medium">{user.name}</p>
+                    <p className="text-xs text-muted-foreground">{user.email}</p>
+                  </div>
+                  <DropdownMenuSeparator />
+                  {userNavigation.map((item) => (
+                    <DropdownMenuItem key={item.name} asChild>
+                      <Link href={item.href} className="cursor-pointer">
+                        <item.icon className="h-4 w-4 mr-2" />
+                        {item.name}
+                      </Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => router.push('/commandes')} className="text-xs xs:text-sm">
-                      <ShoppingCart className="h-3.5 w-3.5 xs:h-4 xs:w-4 mr-2" />
-                      Mes commandes
-                    </DropdownMenuItem>
-                    {(user?.role === 'seller' || user?.role === 'admin') && (
-                      <DropdownMenuItem onClick={() => router.push('/mes-annonces')} className="text-xs xs:text-sm">
-                        <FileText className="h-3.5 w-3.5 xs:h-4 xs:w-4 mr-2" />
-                        Mes annonces
+                  ))}
+                  {isAdmin() && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem asChild>
+                        <Link href="/admin" className="cursor-pointer">
+                          <Shield className="h-4 w-4 mr-2" />
+                          Administration
+                        </Link>
                       </DropdownMenuItem>
-                    )}
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={handleLogout} className="text-xs xs:text-sm text-destructive">
-                      <LogOut className="h-3.5 w-3.5 xs:h-4 xs:w-4 mr-2" />
-                      Déconnexion
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </>
+                    </>
+                  )}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem 
+                    onClick={handleLogout}
+                    className="cursor-pointer text-destructive focus:text-destructive"
+                  >
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Déconnexion
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             ) : (
-              <Button 
-                onClick={() => setAuthDialogOpen(true)} 
+              <Button
                 size="sm"
-                className="h-8 xs:h-9 text-xs xs:text-sm px-2.5 xs:px-3 sm:px-4"
+                onClick={() => setAuthDialogOpen(true)}
+                className="bg-[#D4A574] hover:bg-[#C49A6C] text-white text-xs sm:text-sm"
               >
-                <User className="h-3.5 w-3.5 xs:h-4 xs:w-4 mr-1 xs:mr-1.5 sm:mr-2" />
+                <User className="h-4 w-4 mr-1.5" />
                 <span className="hidden xs:inline">Connexion</span>
-                <span className="xs:hidden">Login</span>
               </Button>
             )}
 
-            {/* Mobile Menu */}
-            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="lg:hidden h-8 w-8 xs:h-9 xs:w-9">
-                  <Menu className="h-4 w-4 xs:h-5 xs:w-5" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="right" className="w-[280px] xs:w-[320px] sm:w-[380px]">
-                <SheetHeader>
-                  <SheetTitle className="flex items-center gap-2">
-                    <Image
-                      src="https://res.cloudinary.com/dxy0fiahv/image/upload/v1763812106/dog-shop_copie_wzu9xb.png"
-                      alt="Dogs-Shop Logo"
-                      width={24}
-                      height={24}
-                    />
-                    Dogs-Shop
-                  </SheetTitle>
-                </SheetHeader>
-                <nav className="mt-6 flex flex-col gap-1">
-                  {isAdmin() && (
-                    <>
-                      <Link href="/admin" onClick={() => setMobileMenuOpen(false)}>
-                        <Button variant="ghost" className="w-full justify-start text-sm h-10 text-amber-600 dark:text-amber-400">
-                          <Shield className="h-4 w-4 mr-3" />
-                          Tableau de bord Admin
-                        </Button>
-                      </Link>
-                      <div className="my-2 border-t" />
-                    </>
-                  )}
-                  {navItems.map((item) => (
-                    <Link key={item.href} href={item.href} onClick={() => setMobileMenuOpen(false)}>
-                      <Button variant="ghost" className="w-full justify-start text-sm h-10">
-                        <item.icon className="h-4 w-4 mr-3" />
-                        {item.label}
-                      </Button>
-                    </Link>
-                  ))}
-                </nav>
-              </SheetContent>
-            </Sheet>
+            {/* Mobile menu button */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="lg:hidden"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
+              {mobileMenuOpen ? (
+                <X className="h-5 w-5" />
+              ) : (
+                <Menu className="h-5 w-5" />
+              )}
+            </Button>
           </div>
         </div>
+
+        {/* Mobile Navigation */}
+        {mobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="lg:hidden border-t bg-background"
+          >
+            <nav className="container mx-auto px-4 py-4 space-y-2">
+              {navigation.map((item) => {
+                const isActive = pathname === item.href;
+                return (
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <Button
+                      variant={isActive ? 'secondary' : 'ghost'}
+                      className="w-full justify-start"
+                    >
+                      <item.icon className="h-4 w-4 mr-2" />
+                      {item.name}
+                    </Button>
+                  </Link>
+                );
+              })}
+              {isAuthenticated && (
+                <>
+                  <div className="border-t pt-2 mt-2">
+                    {userNavigation.map((item) => (
+                      <Link
+                        key={item.name}
+                        href={item.href}
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        <Button variant="ghost" className="w-full justify-start">
+                          <item.icon className="h-4 w-4 mr-2" />
+                          {item.name}
+                        </Button>
+                      </Link>
+                    ))}
+                    {isAdmin() && (
+                      <Link href="/admin" onClick={() => setMobileMenuOpen(false)}>
+                        <Button variant="ghost" className="w-full justify-start">
+                          <Shield className="h-4 w-4 mr-2" />
+                          Administration
+                        </Button>
+                      </Link>
+                    )}
+                  </div>
+                  <div className="border-t pt-2 mt-2">
+                    <Button 
+                      variant="ghost" 
+                      className="w-full justify-start text-destructive hover:text-destructive"
+                      onClick={handleLogout}
+                    >
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Déconnexion
+                    </Button>
+                  </div>
+                </>
+              )}
+            </nav>
+          </motion.div>
+        )}
       </header>
 
       <AuthDialog open={authDialogOpen} onOpenChange={setAuthDialogOpen} />
